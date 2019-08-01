@@ -6,7 +6,6 @@ import Text.HTML.TagSoup.Tree (TagTree(..), parseTree)
 import Text.StringLike (StringLike)
 import Data.Functor((<&>))
 import Data.Maybe (catMaybes, listToMaybe)
-import Debug.Trace
 import Numeric.Natural
 
 data Selector str = 
@@ -25,11 +24,11 @@ mainBranch = find p where
     p _                     = False
 
 selectorMatches :: Eq str => Selector str -> TagTree str -> Bool
-selectorMatches  s@(TagName wantedName) t@(TagBranch actualName _ _)
+selectorMatches  (TagName wantedName) (TagBranch actualName _ _)
     | actualName == wantedName = True
     | otherwise = False
 
-selectorMatches s@(AttrValue wantedAttr wantedName) t@(TagBranch _ attrs _)
+selectorMatches (AttrValue wantedAttr wantedName) (TagBranch _ attrs _)
     | (wantedAttr, wantedName) `elem` attrs = True
     | otherwise = False
 
