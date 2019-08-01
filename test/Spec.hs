@@ -9,7 +9,7 @@ main = defaultMain tests
 
 tests :: TestTree
 tests = testGroup "Tests" $
-  [ splitLineTests, scoreTests, extractNameTests
+  [ splitLineTests, scoreTests, extractNameTests, parseLineTests
   ]
 
 splitLineTests = testGroup "splitLine"  $
@@ -26,6 +26,13 @@ scoreTests = testGroup "mkScore" $
 
 extractNameTests = testGroup "extractNameFromNameParagraph" $
     [
-        testCase "Successful" $ extractTextBetween "for: " ", who" "These results are for: Tin    , who" @?= Just ("Tin"),
+        testCase "Successful"   $ extractTextBetween "for: " ", who" "These results are for: Tin    , who"   @?= Just ("Tin"),
         testCase "Unsuccessful" $ extractTextBetween "about: " ", who" "These results are for: Tin    , who" @?= Nothing
     ]
+
+parseLineTests = testGroup "parseLine" $ [
+    testCase "Header" $ parseLine "Domain/Facet...... Score" @?= Right Header,
+    testCase "Facet"  $ parseLine "Friendliness...... 51"    @?= Right (F "Friendliness" (Score 51)),
+    testCase "Domain" $ parseLine "DOMAIN...... 51"          @?= Right (D "DOMAIN" (Score 51)),
+    testCase "Domain spaces" $ parseLine "DOMAIN WITH SPACES...... 51"   @?= Right (D "DOMAIN WITH SPACES" (Score 51))
+    ]    

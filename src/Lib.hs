@@ -7,7 +7,6 @@ import Data.Text(Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as TIO
 import Data.Either.Combinators (maybeToRight)
-import Debug.Trace
 import Control.Monad (foldM)
 import Data.Bifunctor (first)
 
@@ -45,14 +44,14 @@ data PersonalityTestResult  = PersonalityTestResult {
 data ParseResult =
     D Text Score | 
     F Text Score |
-    Header deriving Show
+    Header deriving (Eq, Show)
 
 data ParseError = 
     InvalidNumber Text | 
     ScoreOutOfRange Natural | 
     UnexpectedLine Text deriving (Show, Eq)
 
-data ReconstructionError = FacetWithoutPreceedingDomain deriving Show
+data ReconstructionError = FacetWithoutPreceedingDomain Text Score deriving Show
 
 data Err = 
     PE ParseError | 
@@ -66,10 +65,13 @@ parseLine other = do
     (start, end) <- splitLine other
     scoreNat     <- parseNatural end
     score        <- maybeToRight (ScoreOutOfRange scoreNat) (mkScore scoreNat)
-    return $ if Text.all (isUpper) start then
+    return $ if Text.all (isUpperOrSpace) start then
             D start score
         else
             F start score
+    where
+        isUpperOrSpace c = isUpper c || c == ' '
+
 
 
 splitLine :: Text -> Either ParseError (Text, Text)
@@ -77,7 +79,7 @@ splitLine t = let
     isDot c = c == '.'
     isNonEmpty t = Text.length t > 0
     (firstPart, afterFirstPart) = Text.break isDot t
-    (dots, lastPart) = Text.span isDot afterFirstPart
+    (_, lastPart) = Text.span isDot afterFirstPart
     in 
         if isNonEmpty firstPart && isNonEmpty lastPart then
             Right (Text.strip firstPart, Text.strip lastPart)
@@ -97,7 +99,7 @@ reconstructDomains results =  backwardsResult <&> reverse . (fmap (\d -> d {_fac
         step xs Header = Right xs
         step xs (D text score) = Right $ (Domain text score []) : xs -- Done with the old domain, start a new one
         step (x : xs) (F text score) = Right $ x { _facets = (Facet text score) : _facets x} : xs -- Add a new facet to existing domain
-        step [] (F text score) = Left FacetWithoutPreceedingDomain  
+        step [] (F text score) = Left $ FacetWithoutPreceedingDomain text score 
 
 allDomains :: IO (Either Err [Domain]) 
 allDomains = rawFile <&> tree <&> mainBranch <&> fromJust <&> extractEntriesFromRoot <&> map (map (first PE . parseLine)) <&> sequence . concat  <&> (>>= (first RE . reconstructDomains))
