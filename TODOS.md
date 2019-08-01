@@ -1,0 +1,4 @@
+- optics
+- property tests
+- better modules
+- orphan instances

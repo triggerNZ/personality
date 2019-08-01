@@ -1,0 +1,4 @@
+# personality
+
+
+- Required installed things: 
