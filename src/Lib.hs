@@ -5,16 +5,11 @@ import Data.Functor((<&>))
 import Numeric.Natural (Natural)
 import Data.Text(Text)
 import qualified Data.Text as Text
-import qualified Data.Text.IO as TIO
 import Data.Either.Combinators (maybeToRight)
 import Control.Monad (foldM)
 import Data.Bifunctor (first)
 
 import Html
-import Data.Maybe
-
-rawFile :: IO Text
-rawFile = TIO.readFile "results.html"  
 
 newtype Score = Score Natural deriving (Show, Eq)
 
@@ -28,18 +23,18 @@ data Domain = Domain {
     _dname :: Text,
     _dscore :: Score,
     _facets :: [Facet]
-} deriving Show
+} deriving (Eq, Show)
 
 data Facet = Facet {
     _fname :: Text,
     _fscore :: Score
-} deriving Show
+} deriving (Eq, Show)
 
 data PersonalityTestResult  = PersonalityTestResult {
     _name :: Text,
     _email :: Text,
     _domains :: [Domain]
-} deriving Show
+} deriving (Eq, Show)
 
 data ParseResult =
     D Text Score | 
@@ -73,7 +68,6 @@ parseLine other = do
         isUpperOrSpace c = isUpper c || c == ' '
 
 
-
 splitLine :: Text -> Either ParseError (Text, Text)
 splitLine t = let
     isDot c = c == '.'
@@ -100,9 +94,6 @@ reconstructDomains results =  backwardsResult <&> reverse . (fmap (\d -> d {_fac
         step xs (D text score) = Right $ (Domain text score []) : xs -- Done with the old domain, start a new one
         step (x : xs) (F text score) = Right $ x { _facets = (Facet text score) : _facets x} : xs -- Add a new facet to existing domain
         step [] (F text score) = Left $ FacetWithoutPreceedingDomain text score 
-
-allDomains :: IO (Either Err [Domain]) 
-allDomains = rawFile <&> tree <&> mainBranch <&> fromJust <&> extractEntriesFromRoot <&> map (map (first PE . parseLine)) <&> sequence . concat  <&> (>>= (first RE . reconstructDomains))
 
 extractName :: Text -> Maybe Text
 extractName = extractTextBetween "This report compares " "from the country"
